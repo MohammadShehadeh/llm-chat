@@ -1,7 +1,16 @@
 "use client";
 
+import {
+  IconMicrophone,
+  IconPaperclip,
+  IconPlus,
+  IconSearch,
+  IconSend,
+  IconSparkles,
+} from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
 import type React from "react";
-
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,27 +21,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import {
-  IconMicrophone,
-  IconPaperclip,
-  IconPlus,
-  IconSearch,
-  IconSend,
-  IconSparkles,
-  IconWaveSine,
-} from "@tabler/icons-react";
-import { useRef, useState } from "react";
 
-export default function Ai01() {
+const SUGGESTIONS = [
+  { icon: "💡", text: "Explain how async/await works" },
+  { icon: "🎨", text: "Help me design a REST API" },
+  { icon: "🐛", text: "Debug my React component" },
+  { icon: "📝", text: "Write a Python script" },
+];
+
+export default function AiChat() {
   const [message, setMessage] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (message.trim()) {
+      const query = encodeURIComponent(message.trim());
+      router.push(`/chat?q=${query}`);
+
       setMessage("");
       setIsExpanded(false);
 
@@ -56,14 +66,19 @@ export default function Ai01() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as any);
+      handleSubmit(e as unknown as React.FormEvent);
     }
+  };
+
+  const handleSuggestion = (text: string) => {
+    const query = encodeURIComponent(text);
+    router.push(`/chat?q=${query}`);
   };
 
   return (
     <div className="w-full">
-      <h1 className="text-balance mb-8 mx-auto max-w-2xl text-center text-2xl font-semibold leading-9 text-foreground px-1 text-pretty whitespace-pre-wrap">
-        How can I help you today?
+      <h1 className="text-balance mb-8 mx-auto max-w-2xl text-center text-3xl font-semibold leading-10 text-foreground px-1">
+        What can I help with?
       </h1>
 
       <form onSubmit={handleSubmit} className="group/composer w-full">
@@ -72,7 +87,7 @@ export default function Ai01() {
           type="file"
           multiple
           className="sr-only"
-          onChange={(e) => {}}
+          onChange={() => {}}
         />
 
         <div
@@ -80,7 +95,7 @@ export default function Ai01() {
             "w-full max-w-2xl mx-auto bg-transparent dark:bg-muted/50 cursor-text overflow-clip bg-clip-padding p-2.5 shadow-lg border border-border transition-[border-radius] duration-200 ease-out",
             isExpanded
               ? "rounded-3xl grid [grid-template-columns:1fr] [grid-template-rows:auto_1fr_auto] [grid-template-areas:'header'_'primary'_'footer']"
-              : "rounded-3xl grid [grid-template-columns:auto_1fr_auto] [grid-template-rows:auto_1fr_auto] [grid-template-areas:'header_header_header'_'leading_primary_trailing'_'._footer_.']"
+              : "rounded-3xl grid [grid-template-columns:auto_1fr_auto] [grid-template-rows:auto_1fr_auto] [grid-template-areas:'header_header_header'_'leading_primary_trailing'_'._footer_.']",
           )}
         >
           <div
@@ -89,7 +104,7 @@ export default function Ai01() {
               {
                 "px-2 py-1 mb-0": isExpanded,
                 "-my-2.5": !isExpanded,
-              }
+              },
             )}
             style={{ gridArea: "primary" }}
           >
@@ -99,7 +114,7 @@ export default function Ai01() {
                 value={message}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask anything"
+                placeholder="Ask anything…"
                 className="min-h-0 resize-none rounded-none border-0 p-0 text-base placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0 scrollbar-thin dark:bg-transparent"
                 rows={1}
               />
@@ -135,19 +150,13 @@ export default function Ai01() {
                     <IconPaperclip size={20} className="opacity-60" />
                     Add photos & files
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="rounded-md"
-                    onClick={() => {}}
-                  >
+                  <DropdownMenuItem className="rounded-md" onClick={() => {}}>
                     <div className="flex items-center gap-2">
                       <IconSparkles size={20} className="opacity-60" />
                       Agent mode
                     </div>
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="rounded-md"
-                    onClick={() => {}}
-                  >
+                  <DropdownMenuItem className="rounded-md" onClick={() => {}}>
                     <IconSearch size={20} className="opacity-60" />
                     Deep Research
                   </DropdownMenuItem>
@@ -171,30 +180,35 @@ export default function Ai01() {
                 <IconMicrophone className="size-5 text-muted-foreground" />
               </Button>
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-full hover:bg-accent relative"
-                aria-label="Audio visualization"
-              >
-                <IconWaveSine className="size-5 text-muted-foreground" />
-              </Button>
-
-              {message.trim() && (
+              {message.trim() ? (
                 <Button
                   type="submit"
                   size="icon"
-                  className="rounded-full"
+                  className="rounded-full bg-foreground text-background hover:bg-foreground/90"
                   aria-label="Send message"
                 >
                   <IconSend className="size-5" />
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
       </form>
+
+      {/* Suggestion chips */}
+      <div className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2">
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s.text}
+            type="button"
+            onClick={() => handleSuggestion(s.text)}
+            className="flex items-center gap-2 rounded-full border border-border bg-transparent px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <span>{s.icon}</span>
+            {s.text}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
