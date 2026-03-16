@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openrouter.chat("tngtech/deepseek-r1t2-chimera:free"),
+    model: openrouter("openai/gpt-oss-120b:free"),
     messages: convertToModelMessages(messages),
   });
 
