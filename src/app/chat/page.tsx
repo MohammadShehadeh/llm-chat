@@ -3,7 +3,6 @@
 import { useChat } from "@ai-sdk/react";
 import {
   IconCheck,
-  IconChevronDown,
   IconCopy,
   IconMicrophone,
   IconPaperclip,
@@ -11,30 +10,16 @@ import {
   IconSparkles,
   IconSquare,
 } from "@tabler/icons-react";
-import { DefaultChatTransport } from "ai";
 import { useSearchParams } from "next/navigation";
 import {
   Suspense,
-  useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import ChatLayout from "@/components/chat-layout";
 import Markdown from "@/components/markdown";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-const MODELS = [
-  { id: "openai/gpt-oss-120b:free", label: "GPT OSS 120B" },
-  {
-    id: "google/gemini-2.5-flash-preview:thinking",
-    label: "Gemini 2.5 Flash",
-  },
-  { id: "anthropic/claude-sonnet-4", label: "Claude Sonnet 4" },
-  { id: "meta-llama/llama-4-maverick:free", label: "Llama 4 Maverick" },
-];
 
 export default function ChatPageWrapper() {
   return (
@@ -56,28 +41,15 @@ function ChatPageContent() {
   const searchParams = useSearchParams();
   const initialQuestion = searchParams.get("q") ?? "";
 
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
-  const [showModelMenu, setShowModelMenu] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport({
-        api: "/api/chat",
-        body: () => ({ model: selectedModel }),
-      }),
-    [selectedModel],
-  );
-
-  const { messages, status, sendMessage, stop } = useChat({ transport });
+  const { messages, status, sendMessage, stop } = useChat();
 
   const isLoading = status === "submitted" || status === "streaming";
 
   const hasSentInitialRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const modelMenuRef = useRef<HTMLDivElement>(null);
 
   // Auto-send initial question from URL
   useEffect(() => {
@@ -88,39 +60,21 @@ function ChatPageContent() {
   }, [initialQuestion, sendMessage]);
 
   // Auto-scroll to bottom
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll when messages change
-  useEffect(scrollToBottom, [messages.length, scrollToBottom]);
-
-  // Close model menu on outside click
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        modelMenuRef.current &&
-        !modelMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowModelMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
 
   // Auto-resize textarea
-  const handleTextareaChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setInput(e.target.value);
-      const ta = e.target;
-      ta.style.height = "auto";
-      ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
-    },
-    [],
-  );
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    const ta = e.target;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 200)}px`;
+  };
 
-  const handleSend = useCallback(() => {
+  const handleSend = () => {
     if (input.trim() && !isLoading) {
       sendMessage({ text: input.trim() });
       setInput("");
@@ -128,7 +82,7 @@ function ChatPageContent() {
         textareaRef.current.style.height = "auto";
       }
     }
-  }, [input, isLoading, sendMessage]);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -143,48 +97,9 @@ function ChatPageContent() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const currentModelLabel =
-    MODELS.find((m) => m.id === selectedModel)?.label ?? "Select model";
-
   return (
     <ChatLayout>
       <div className="flex h-full flex-col">
-        {/* Header */}
-        <header className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-          <div className="relative" ref={modelMenuRef}>
-            <button
-              type="button"
-              onClick={() => setShowModelMenu(!showModelMenu)}
-              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
-              {currentModelLabel}
-              <IconChevronDown className="size-4 text-muted-foreground" />
-            </button>
-
-            {showModelMenu && (
-              <div className="absolute top-full left-0 z-50 mt-1 w-56 rounded-xl border border-border bg-popover p-1 shadow-lg">
-                {MODELS.map((model) => (
-                  <button
-                    key={model.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedModel(model.id);
-                      setShowModelMenu(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
-                      selectedModel === model.id
-                        ? "bg-muted text-foreground"
-                        : "text-foreground/80",
-                    )}
-                  >
-                    {model.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </header>
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto">
